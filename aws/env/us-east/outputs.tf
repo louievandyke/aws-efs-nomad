@@ -21,35 +21,23 @@ executing:
 
 Simply wait a few seconds and rerun the command if this occurs.
 
-The Nomad UI can be accessed at http://${module.hashistack.server_lb_ip}:4646/ui.
-The Consul UI can be accessed at http://${module.hashistack.server_lb_ip}:8500/ui.
+The Nomad UI can be accessed at http://${module.hashistack.server_lb_drifter_ip}:4646/ui.
+The Consul UI can be accessed at http://${module.hashistack.server_lb_drifter_ip}:8500/ui.
 
 Set the following for access from the Nomad CLI:
 
-  export NOMAD_ADDR=http://${module.hashistack.server_lb_ip}:4646
+  export NOMAD_ADDR=http://${module.hashistack.server_lb_drifter_ip}:4646
 
 CONFIGURATION
 
-}
-output "ebs_volume" {
-    value = <<EOM
-# volume registration
-type = "csi"
-id = "mysql_ebs"
-name = "mysql_ebs"
-external_id = "${module.hashistack.aws_ebs_volume}"
-access_mode = "single-node-writer"
-attachment_mode = "file-system"
-plugin_id = "aws-ebs0"
-EOM
 }
 
 output "aws_efs_file_system" {
     value = <<EOM
 # volume registration
 type = "csi"
-id = "elnino"
-name = "elnino"
+id = "drifter"
+name = "drifter"
 external_id = "${module.hashistack.aws_efs_file_system}"
 access_mode = "multi-node-multi-writer"
 attachment_mode = "file-system"

@@ -3,6 +3,12 @@ provider "aws" {
   #var.region
 }
 
+# Configure the Nomad provider
+provider "nomad" {
+  address = "http://${module.hashistack.server_lb_drifter_ip}:4646"
+  region  = "global"
+}
+
 module "hashistack" {
   source = "../../modules/hashistack"
 
