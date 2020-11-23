@@ -1,14 +1,14 @@
-job "drifter-mysql-server" {
+job "mysql-server-2" {
   datacenters = ["dc1"]
   type        = "service"
 
-  group "drifter-mysql-server" {
-    count = 1
+  group "mysql-server" {
+    count = 4
 
-    volume "drifter" {
+    volume "efs_vol0" {
       type      = "csi"
       read_only = false
-      source    = "drifter"
+      source    = "efs_vol0"
     }
 
     restart {
@@ -18,7 +18,7 @@ job "drifter-mysql-server" {
       mode     = "delay"
     }
 
-    task "mysql-server" {
+    task "mysql-server-2" {
       driver = "docker"
 
       volume_mount {
@@ -52,7 +52,7 @@ job "drifter-mysql-server" {
       }
 
       service {
-        name = "mysql-server"
+        name = "mysql-server-2"
         port = "db"
 
         check {

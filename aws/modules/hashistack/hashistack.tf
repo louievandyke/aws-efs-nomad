@@ -272,6 +272,37 @@ data "aws_iam_policy_document" "drifter_instance_role" {
   }
 }
 
+
+resource "aws_iam_instance_profile" "instance_profile" {
+  name_prefix = var.name
+  role        = aws_iam_role.drifter_instance_role.name
+}
+
+resource "aws_iam_role" "instance_role" {
+  name_prefix        = var.name
+  assume_role_policy = data.aws_iam_policy_document.instance_role.json
+}
+
+data "aws_iam_policy_document" "instance_role" {
+  statement {
+    effect  = "Allow"
+    actions = ["sts:AssumeRole"]
+
+    principals {
+      type        = "Service"
+      identifiers = ["ec2.amazonaws.com"]
+    }
+  }
+}
+
+
+
+resource "aws_iam_role_policy" "auto_discover_cluster" {
+  name   = "auto-discover-cluster"
+  role   = aws_iam_role.instance_role.id
+  policy = data.aws_iam_policy_document.auto_discover_cluster.json
+}
+
 resource "aws_iam_role_policy" "drifter_auto_discover_cluster" {
   name   = "auto-discover-cluster"
   role   = aws_iam_role.drifter_instance_role.id
@@ -279,6 +310,20 @@ resource "aws_iam_role_policy" "drifter_auto_discover_cluster" {
 }
 
 data "aws_iam_policy_document" "drifter_auto_discover_cluster" {
+  statement {
+    effect = "Allow"
+
+    actions = [
+      "ec2:DescribeInstances",
+      "ec2:DescribeTags",
+      "autoscaling:DescribeAutoScalingGroups",
+    ]
+
+    resources = ["*"]
+  }
+}
+
+data "aws_iam_policy_document" "auto_discover_cluster" {
   statement {
     effect = "Allow"
 
@@ -323,7 +368,7 @@ output "client_public_ips" {
 output "server_lb_drifter_ip" {
   value = aws_elb.drifter_server_lb.dns_name
 }
-/*
+
 resource "aws_iam_role_policy" "mount_ebs_volumes" {
   name   = "mount-ebs-volumes"
   role   = aws_iam_role.instance_role.id
@@ -345,15 +390,15 @@ data "aws_iam_policy_document" "mount_ebs_volumes" {
   }
 }
 
-resource "aws_ebs_volume" "mysql" {
-  availability_zone = aws_instance.client[0].availability_zone
+resource "aws_ebs_volume" "mysql-ebs" {
+  availability_zone = aws_instance.drifter-client[0].availability_zone
   size              = 40
 }
 
 output "aws_ebs_volume" {
-  value = aws_ebs_volume.mysql.id
+  value = aws_ebs_volume.mysql-ebs.id
 }
-
+/*
 resource "aws_efs_file_system" "foo-efs" {
    creation_token = "my-efs"
    performance_mode = "generalPurpose"
@@ -446,27 +491,33 @@ output "aws_efs_file_system" {
   value = aws_efs_file_system.drifter.id
 }
 
+resource "time_sleep" "wait_30_seconds" {
+  depends_on      = [aws_elb.drifter_server_lb]
+  create_duration = "5m"
+}
+
 resource "nomad_job" "efs_plugin" {
   jobspec    = file("plugin-drifter.efs.nomad")
-  #depends_on = [aws_elb.drifter_server_lb]
+  depends_on = [time_sleep.wait_30_seconds]
   purge_on_destroy = true
 }
 
 resource "nomad_job" "mysql" {
   jobspec    = file("mysql-server-drifter.nomad")
-  #depends_on = [aws_elb.drifter_server_lb]
+  depends_on = [time_sleep.wait_30_seconds]
   purge_on_destroy = true
 }
-/*
+
 data "nomad_plugin" "drifter_efs" {
   plugin_id        = "aws-efs0"
-  wait_for_registration = true
-  #wait_for_healthy = true
+  #wait_for_registration = false
+  wait_for_healthy = true
 }
-*/
-resource "nomad_volume" "mysql_volume" {
- # depends_on      = [data.nomad_plugin.drifter_efs]
+
+resource "nomad_volume" "efs" {
+  depends_on      = [data.nomad_plugin.drifter_efs]
  # depends_on      = [aws_elb.drifter_server_lb, data.nomad_plugin.drifter_efs]
+ # depends_on      = [time_sleep.wait_30_seconds]
   type            = "csi"
   plugin_id       = "aws-efs0"
   volume_id       = "drifter"
