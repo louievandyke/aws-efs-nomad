@@ -1,11 +1,11 @@
-job "mysql-server-1" {
+job "mysql-server-2" {
   datacenters = ["dc1"]
   type        = "service"
 
-  group "mysql-server-1" {
-    count = 1
+  group "mysql-server-2" {
+    count = 4
 
-    volume "efs_vol0" {
+    volume "efs_vol1" {
       type      = "csi"
       read_only = false
       source    = "efs_vol0"
@@ -18,11 +18,11 @@ job "mysql-server-1" {
       mode     = "delay"
     }
 
-    task "mysql-server" {
+    task "mysql-server-2" {
       driver = "docker"
 
       volume_mount {
-        volume      = "efs_vol0"
+        volume      = "efs_vol1"
         destination = "/srv"
         read_only   = false
       }
@@ -33,10 +33,10 @@ job "mysql-server-1" {
 
       config {
         image = "hashicorp/mysql-portworx-demo:latest"
-        args = ["--datadir", "/srv/drifter"]
+        args = ["--datadir", "/srv/mysql"]
 
         port_map {
-          db = 3306
+          db = 3307
         }
       }
 
@@ -46,13 +46,13 @@ job "mysql-server-1" {
 
         network {
           port "db" {
-            static = 3306
+            static = 3307
           }
         }
       }
 
       service {
-        name = "mysql-server-1"
+        name = "mysql-server-2"
         port = "db"
 
         check {

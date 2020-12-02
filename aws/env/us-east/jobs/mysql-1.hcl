@@ -1,14 +1,14 @@
-job "lvtest" {
+job "mysql-server-1" {
   datacenters = ["dc1"]
   type        = "service"
 
-  group "lvtest" {
+  group "mysql-server-1" {
     count = 1
 
-    volume "lvtest" {
+    volume "efs_vol0" {
       type      = "csi"
       read_only = false
-      source    = "lvtest"
+      source    = "efs_vol0"
     }
 
     restart {
@@ -18,11 +18,11 @@ job "lvtest" {
       mode     = "delay"
     }
 
-    task "lvtest-server" {
+    task "mysql-server" {
       driver = "docker"
 
       volume_mount {
-        volume      = "lvtest"
+        volume      = "efs_vol0"
         destination = "/srv"
         read_only   = false
       }
@@ -33,7 +33,7 @@ job "lvtest" {
 
       config {
         image = "hashicorp/mysql-portworx-demo:latest"
-        args = ["--datadir", "/srv/lvtest"]
+        args = ["--datadir", "/srv/mysql"]
 
         port_map {
           db = 3306
@@ -52,7 +52,7 @@ job "lvtest" {
       }
 
       service {
-        name = "mysql-server"
+        name = "mysql-server-1"
         port = "db"
 
         check {

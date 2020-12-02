@@ -272,7 +272,6 @@ data "aws_iam_policy_document" "drifter_instance_role" {
   }
 }
 
-
 resource "aws_iam_instance_profile" "instance_profile" {
   name_prefix = var.name
   role        = aws_iam_role.drifter_instance_role.name
@@ -294,8 +293,6 @@ data "aws_iam_policy_document" "instance_role" {
     }
   }
 }
-
-
 
 resource "aws_iam_role_policy" "auto_discover_cluster" {
   name   = "auto-discover-cluster"
@@ -375,6 +372,7 @@ output "server_lb_drifter_ip" {
   value = aws_elb.drifter_server_lb.dns_name
 }
 
+/*
 resource "aws_iam_role_policy" "mount_ebs_volumes" {
   name   = "mount-ebs-volumes"
   role   = aws_iam_role.drifter_instance_role.id
@@ -395,7 +393,7 @@ data "aws_iam_policy_document" "mount_ebs_volumes" {
     resources = ["*"]
   }
 }
-/*
+
 resource "aws_ebs_volume" "mysql-ebs" {
   availability_zone = aws_instance.drifter-client[0].availability_zone
   size              = 40
@@ -440,7 +438,6 @@ resource "aws_subnet" "sub" {
 }
 */
 
-
 resource "aws_security_group" "drifter" {
   vpc_id      = data.aws_vpc.default.id
   description = "EFS Access Security Group"
@@ -449,7 +446,6 @@ resource "aws_security_group" "drifter" {
     Name = "drifter-EFS"
   }
 }
-
 
 resource "aws_security_group_rule" "drifter-ingress" {
   description       = "Ingress rule to allow traffic to EFS"
@@ -471,8 +467,6 @@ resource "aws_security_group_rule" "drifter-egress" {
   cidr_blocks       = ["0.0.0.0/0"]
 }
 
-
-
 resource "aws_efs_file_system" "drifter" {
   creation_token = "drifter"
   encrypted      = true
@@ -480,7 +474,6 @@ resource "aws_efs_file_system" "drifter" {
     Name = "LvEfs"
   }
 }
-
 
 resource "aws_efs_mount_target" "drifter1" {
   file_system_id  = aws_efs_file_system.drifter.id
@@ -507,13 +500,7 @@ resource "nomad_job" "efs_plugin" {
   depends_on = [time_sleep.wait_2_min]
   purge_on_destroy = true
 }
-/*
-resource "time_sleep" "wait_2_min" {
-  depends_on = [nomad_job.efs_plugin]
 
-  create_duration = "2m"
-}
-*/
 /*
 resource "nomad_job" "ebs_plugin_ctl" {
   jobspec    = file("plugin-ebs-controller.nomad")
@@ -536,15 +523,11 @@ resource "nomad_job" "mysql" {
 /*
 data "nomad_plugin" "efs" {
   plugin_id           = "aws-efs0"
-  #depends_on      = [time_sleep.wait_2_min]
-  #wait_for_registration = false
   wait_for_healthy    = true
 }
 */
 resource "nomad_volume" "efs" {
   depends_on      = [nomad_job.efs_plugin]
- # depends_on      = [aws_elb.drifter_server_lb, data.nomad_plugin.drifter_efs]
-  #depends_on      = [time_sleep.wait_2_min]
   type            = "csi"
   plugin_id       = "aws-efs0"
   volume_id       = "aws-efs0"
@@ -558,14 +541,11 @@ resource "nomad_volume" "efs" {
 /*
 data "nomad_plugin" "ebs" {
   plugin_id        = "aws-ebs0"
-  #wait_for_registration = false
-  #wait_for_healthy = true
+  wait_for_healthy = true
 }
 
 resource "nomad_volume" "ebs" {
-  #Sdepends_on      = [data.nomad_plugin.ebs]
- # depends_on      = [aws_elb.drifter_server_lb, data.nomad_plugin.drifter_efs]
- # depends_on      = [time_sleep.wait_2_min]
+  depends_on      = [data.nomad_plugin.ebs]
   type            = "csi"
   plugin_id       = "aws-ebs0"
   volume_id       = "aws-ebs0"
