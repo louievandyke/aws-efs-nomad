@@ -20,6 +20,7 @@ VAULTCONFIGDIR=/etc/vault.d
 VAULTDIR=/opt/vault
 
 NOMADVERSION=0.12.4
+#NOMADVERSION=1.0.0-beta3
 NOMADDOWNLOAD=https://releases.hashicorp.com/nomad/${NOMADVERSION}/nomad_${NOMADVERSION}_linux_amd64.zip
 NOMADCONFIGDIR=/etc/nomad.d
 NOMADDIR=/opt/nomad
@@ -100,6 +101,8 @@ sudo mkdir -p $CONSULTEMPLATEDIR
 sudo chmod 755 $CONSULTEMPLATEDIR
 
 
+
+
 # Docker
 distro=$(lsb_release -si | tr '[:upper:]' '[:lower:]')
 sudo apt-get install -y apt-transport-https ca-certificates gnupg2 
@@ -169,3 +172,8 @@ sudo add-apt-repository -y ppa:openjdk-r/ppa
 sudo apt-get update 
 sudo apt-get install -y openjdk-8-jdk
 JAVA_HOME=$(readlink -f /usr/bin/java | sed "s:bin/java::")
+
+
+
+sudo touch /var/tmp/foo.bar
+

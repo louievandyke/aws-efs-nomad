@@ -357,6 +357,12 @@ resource "aws_elb" "drifter_server_lb" {
   security_groups = [aws_security_group.drifter_server_lb.id]
 }
 
+resource "time_sleep" "wait_2_min" {
+  depends_on = [aws_elb.drifter_server_lb]
+
+  create_duration = "2m"
+}
+
 output "server_public_ips" {
    value = aws_instance.drifter-server[*].public_ip
 }
@@ -371,7 +377,7 @@ output "server_lb_drifter_ip" {
 
 resource "aws_iam_role_policy" "mount_ebs_volumes" {
   name   = "mount-ebs-volumes"
-  role   = aws_iam_role.instance_role.id
+  role   = aws_iam_role.drifter_instance_role.id
   policy = data.aws_iam_policy_document.mount_ebs_volumes.json
 }
 
@@ -389,7 +395,7 @@ data "aws_iam_policy_document" "mount_ebs_volumes" {
     resources = ["*"]
   }
 }
-
+/*
 resource "aws_ebs_volume" "mysql-ebs" {
   availability_zone = aws_instance.drifter-client[0].availability_zone
   size              = 40
@@ -490,40 +496,84 @@ resource "aws_efs_mount_target" "drifter2" {
 output "aws_efs_file_system" {
   value = aws_efs_file_system.drifter.id
 }
-
-resource "time_sleep" "wait_30_seconds" {
+/*
+resource "time_sleep" "wait_2_min" {
   depends_on      = [aws_elb.drifter_server_lb]
   create_duration = "5m"
 }
-
+*/
 resource "nomad_job" "efs_plugin" {
   jobspec    = file("plugin-drifter.efs.nomad")
-  depends_on = [time_sleep.wait_30_seconds]
+  depends_on = [time_sleep.wait_2_min]
+  purge_on_destroy = true
+}
+/*
+resource "time_sleep" "wait_2_min" {
+  depends_on = [nomad_job.efs_plugin]
+
+  create_duration = "2m"
+}
+*/
+/*
+resource "nomad_job" "ebs_plugin_ctl" {
+  jobspec    = file("plugin-ebs-controller.nomad")
+  //depends_on = [time_sleep.wait_2_min]
+  purge_on_destroy = true
+}
+
+resource "nomad_job" "ebs_plugin_node" {
+  jobspec    = file("plugin-ebs-node.nomad")
+  //depends_on = [time_sleep.wait_2_min]
   purge_on_destroy = true
 }
 
 resource "nomad_job" "mysql" {
   jobspec    = file("mysql-server-drifter.nomad")
-  depends_on = [time_sleep.wait_30_seconds]
+  depends_on = [time_sleep.wait_2_min]
   purge_on_destroy = true
 }
-
-data "nomad_plugin" "drifter_efs" {
-  plugin_id        = "aws-efs0"
+*/
+/*
+data "nomad_plugin" "efs" {
+  plugin_id           = "aws-efs0"
+  #depends_on      = [time_sleep.wait_2_min]
   #wait_for_registration = false
-  wait_for_healthy = true
+  wait_for_healthy    = true
 }
-
+*/
 resource "nomad_volume" "efs" {
-  depends_on      = [data.nomad_plugin.drifter_efs]
+  depends_on      = [nomad_job.efs_plugin]
  # depends_on      = [aws_elb.drifter_server_lb, data.nomad_plugin.drifter_efs]
- # depends_on      = [time_sleep.wait_30_seconds]
+  #depends_on      = [time_sleep.wait_2_min]
   type            = "csi"
   plugin_id       = "aws-efs0"
-  volume_id       = "drifter"
-  name            = "drifter"
+  volume_id       = "aws-efs0"
+  name            = "aws-efs0"
   external_id     = aws_efs_file_system.drifter.id
   access_mode     = "multi-node-multi-writer"
   attachment_mode = "file-system"
   deregister_on_destroy = true
 }
+
+/*
+data "nomad_plugin" "ebs" {
+  plugin_id        = "aws-ebs0"
+  #wait_for_registration = false
+  #wait_for_healthy = true
+}
+
+resource "nomad_volume" "ebs" {
+  #Sdepends_on      = [data.nomad_plugin.ebs]
+ # depends_on      = [aws_elb.drifter_server_lb, data.nomad_plugin.drifter_efs]
+ # depends_on      = [time_sleep.wait_2_min]
+  type            = "csi"
+  plugin_id       = "aws-ebs0"
+  volume_id       = "aws-ebs0"
+  name            = "aws-ebs0"
+  external_id     = aws_ebs_volume.mysql-ebs.id
+  access_mode     = "single-node-writer"
+  attachment_mode = "file-system"
+  deregister_on_destroy = true
+}
+
+*/

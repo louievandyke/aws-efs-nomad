@@ -30,7 +30,8 @@ sed -i "s/IP_ADDRESS/$IP_ADDRESS/g" $CONFIGDIR/consul_client.json
 sed -i "s/RETRY_JOIN/$RETRY_JOIN/g" $CONFIGDIR/consul_client.json
 sudo cp $CONFIGDIR/consul_client.json $CONSULCONFIGDIR/consul.json
 sudo cp $CONFIGDIR/consul_$CLOUD.service /etc/systemd/system/consul.service
-
+TOKEN=`consul keygen`
+sudo sed -i "s/REPlACE/$TOKEN/g" $CONSULCONFIGDIR/consul.json
 sudo systemctl enable consul.service
 sudo systemctl start consul.service
 sleep 10

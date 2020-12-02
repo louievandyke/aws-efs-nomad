@@ -10,6 +10,7 @@ NOMADCONFIGDIR=/etc/nomad.d
 CONSULTEMPLATECONFIGDIR=/etc/consul-template.d
 HOME_DIR=ubuntu
 
+
 # Wait for network
 sleep 15
 
@@ -33,6 +34,12 @@ sed -i "s/SERVER_COUNT/$SERVER_COUNT/g" $CONFIGDIR/consul.json
 sed -i "s/RETRY_JOIN/$RETRY_JOIN/g" $CONFIGDIR/consul.json
 sudo cp $CONFIGDIR/consul.json $CONSULCONFIGDIR
 sudo cp $CONFIGDIR/consul_$CLOUD.service /etc/systemd/system/consul.service
+TOKEN=`consul keygen`
+sudo touch /var/tmp/foo.bar
+sudo sed -i "s/REPlACE/$TOKEN/g" $CONSULCONFIGDIR/consul.json
+#export token=`consul keygen`
+#sudo sed -i 's@REPlACE@$TOKEN@g' /etc/consul.d/consul.json
+
 
 sudo systemctl enable consul.service
 sudo systemctl start consul.service

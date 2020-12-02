@@ -2,13 +2,13 @@ job "mysql-server-1" {
   datacenters = ["dc1"]
   type        = "service"
 
-  group "mysql-server" {
-    count = 4
+  group "mysql-server-1" {
+    count = 1
 
-    volume "aws-efs0" {
+    volume "efs_vol0" {
       type      = "csi"
       read_only = false
-      source    = "aws-efs0"
+      source    = "efs_vol0"
     }
 
     restart {
@@ -18,11 +18,11 @@ job "mysql-server-1" {
       mode     = "delay"
     }
 
-    task "mysql-server-1" {
+    task "mysql-server" {
       driver = "docker"
 
       volume_mount {
-        volume      = "aws-efs0"
+        volume      = "efs_vol0"
         destination = "/srv"
         read_only   = false
       }

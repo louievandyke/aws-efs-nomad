@@ -36,11 +36,25 @@ output "aws_efs_file_system" {
     value = <<EOM
 # volume registration
 type = "csi"
-id = "drifter"
-name = "drifter"
+id = "aws-efs0"
+name = "aws-efs0"
 external_id = "${module.hashistack.aws_efs_file_system}"
 access_mode = "multi-node-multi-writer"
 attachment_mode = "file-system"
 plugin_id = "aws-efs0"
 EOM
 }
+/*
+output "aws_ebs_volume" {
+    value = <<EOM
+# volume registration
+type = "csi"
+id = "aws-ebs0"
+name = "aws-ebs0"
+external_id = "${module.hashistack.aws_ebs_volume}"
+access_mode = "single-node-writer"
+attachment_mode = "file-system"
+plugin_id = "aws-ebs0"
+EOM
+}
+*/

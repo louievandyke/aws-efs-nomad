@@ -9,7 +9,7 @@ job "plugin-efs" {
   # any given client node
   constraint {
     operator = "distinct_hosts"
-    value = true
+    value = false
   }
 
   group "nodes" {
@@ -33,7 +33,7 @@ job "plugin-efs" {
       }
 
       csi_plugin {
-        id        = "drifter"
+        id        = "aws-efs0"
         type      = "node"
         mount_dir = "/tmp"  # this path /csi matches the --endpoint
                             # argument for the container

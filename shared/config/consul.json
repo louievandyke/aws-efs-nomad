@@ -1,14 +1,27 @@
 {
-  "log_level": "INFO",
-  "server": true,
-  "ui": true,
-  "data_dir": "/opt/consul/data",
+  "acl": [
+    {
+      "default_policy": "deny",
+      "enable_token_persistence": true,
+      "enabled": true
+    }
+  ],
+  "advertise_addr": "IP_ADDRESS",
   "bind_addr": "0.0.0.0",
   "client_addr": "0.0.0.0",
-  "advertise_addr": "IP_ADDRESS",
-  "bootstrap_expect": SERVER_COUNT,
-  "service": {
-    "name": "consul"
-  },
-  "retry_join": ["RETRY_JOIN"]
+  "data_dir": "/opt/consul/data",
+  "log_level": "INFO",
+  "retry_join": [
+    "RETRY_JOIN"
+  ],
+  "server": true,
+  "service": [
+    {
+      "name": "consul"
+    }
+  ],
+  "ui": true,
+  "encrypt": "REPLACE",
+  "encrypt_verify_incoming": true,
+  "encrypt_verify_outgoing": true
 }
