@@ -8,7 +8,7 @@ job "drifter-mysql-server" {
     volume "drifter" {
       type      = "csi"
       read_only = false
-      source    = "drifter"
+      source    = "aws-efs0"
     }
 
     restart {

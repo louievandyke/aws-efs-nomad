@@ -5,10 +5,10 @@ job "mysql-server" {
   group "mysql-server" {
     count = 1
 
-    volume "efs-example" {
+    volume "ebs" {
       type      = "csi"
       read_only = false
-      source    = "efs-example"
+      source    = "aws-ebs0"
     }
 
     restart {
@@ -22,7 +22,7 @@ job "mysql-server" {
       driver = "docker"
 
       volume_mount {
-        volume      = "efs-example"
+        volume      = "ebs"
         destination = "/srv"
         read_only   = false
       }
@@ -33,10 +33,10 @@ job "mysql-server" {
 
       config {
         image = "hashicorp/mysql-portworx-demo:latest"
-        args = ["--datadir", "/srv/efs-example"]
+        args = ["--datadir", "/srv/ebs"]
 
         port_map {
-          db = 3306
+          db = 3308
         }
       }
 
@@ -46,7 +46,7 @@ job "mysql-server" {
 
         network {
           port "db" {
-            static = 3306
+            static = 3308
           }
         }
       }

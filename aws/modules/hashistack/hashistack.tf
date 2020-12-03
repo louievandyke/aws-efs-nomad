@@ -45,7 +45,7 @@ data "aws_vpc" "default" {
   default = true
 }
 
-resource "aws_security_group" "drifter_server_lb" {
+resource "aws_security_group" "server_lb" {
   name   = "${var.name}-server-lb"
   vpc_id = data.aws_vpc.default.id
 
@@ -73,7 +73,7 @@ resource "aws_security_group" "drifter_server_lb" {
   }
 }
 
-resource "aws_security_group" "drifter_primary" {
+resource "aws_security_group" "primary" {
   name   = var.name
   vpc_id = data.aws_vpc.default.id
 
@@ -90,7 +90,7 @@ resource "aws_security_group" "drifter_primary" {
     to_port         = 4646
     protocol        = "tcp"
     cidr_blocks     = [var.whitelist_ip]
-    security_groups = [aws_security_group.drifter_server_lb.id]
+    security_groups = [aws_security_group.server_lb.id]
   }
 
   # Fabio 
@@ -107,7 +107,7 @@ resource "aws_security_group" "drifter_primary" {
     to_port         = 8500
     protocol        = "tcp"
     cidr_blocks     = [var.whitelist_ip]
-    security_groups = [aws_security_group.drifter_server_lb.id]
+    security_groups = [aws_security_group.server_lb.id]
   }
 
   # HDFS NameNode UI
@@ -188,11 +188,11 @@ data "template_file" "user_data_client" {
   }
 }
 
-resource "aws_instance" "drifter-server" {
+resource "aws_instance" "server" {
   ami                    = var.ami
   instance_type          = var.server_instance_type
   key_name               = var.key_name
-  vpc_security_group_ids = [aws_security_group.drifter_primary.id]
+  vpc_security_group_ids = [aws_security_group.primary.id]
   count                  = var.server_count
 
   # instance tags
@@ -212,16 +212,16 @@ resource "aws_instance" "drifter-server" {
   }
 
   user_data            = data.template_file.user_data_server.rendered
-  iam_instance_profile = aws_iam_instance_profile.drifter_instance_profile.name
+  iam_instance_profile = aws_iam_instance_profile.instance_profile.name
 }
 
-resource "aws_instance" "drifter-client" {
+resource "aws_instance" "client" {
   ami                    = var.ami
   instance_type          = var.client_instance_type
   key_name               = var.key_name
-  vpc_security_group_ids = [aws_security_group.drifter_primary.id]
+  vpc_security_group_ids = [aws_security_group.primary.id]
   count                  = var.client_count
-  depends_on             = [aws_instance.drifter-server]
+  depends_on             = [aws_instance.server]
 
   # instance tags
   tags = merge(
@@ -247,34 +247,12 @@ resource "aws_instance" "drifter-client" {
   }
 
   user_data            = data.template_file.user_data_client.rendered
-  iam_instance_profile = aws_iam_instance_profile.drifter_instance_profile.name
-}
-
-resource "aws_iam_instance_profile" "drifter_instance_profile" {
-  name_prefix = var.name
-  role        = aws_iam_role.drifter_instance_role.name
-}
-
-resource "aws_iam_role" "drifter_instance_role" {
-  name_prefix        = var.name
-  assume_role_policy = data.aws_iam_policy_document.drifter_instance_role.json
-}
-
-data "aws_iam_policy_document" "drifter_instance_role" {
-  statement {
-    effect  = "Allow"
-    actions = ["sts:AssumeRole"]
-
-    principals {
-      type        = "Service"
-      identifiers = ["ec2.amazonaws.com"]
-    }
-  }
+  iam_instance_profile = aws_iam_instance_profile.instance_profile.name
 }
 
 resource "aws_iam_instance_profile" "instance_profile" {
   name_prefix = var.name
-  role        = aws_iam_role.drifter_instance_role.name
+  role        = aws_iam_role.instance_role.name
 }
 
 resource "aws_iam_role" "instance_role" {
@@ -300,26 +278,6 @@ resource "aws_iam_role_policy" "auto_discover_cluster" {
   policy = data.aws_iam_policy_document.auto_discover_cluster.json
 }
 
-resource "aws_iam_role_policy" "drifter_auto_discover_cluster" {
-  name   = "auto-discover-cluster"
-  role   = aws_iam_role.drifter_instance_role.id
-  policy = data.aws_iam_policy_document.drifter_auto_discover_cluster.json
-}
-
-data "aws_iam_policy_document" "drifter_auto_discover_cluster" {
-  statement {
-    effect = "Allow"
-
-    actions = [
-      "ec2:DescribeInstances",
-      "ec2:DescribeTags",
-      "autoscaling:DescribeAutoScalingGroups",
-    ]
-
-    resources = ["*"]
-  }
-}
-
 data "aws_iam_policy_document" "auto_discover_cluster" {
   statement {
     effect = "Allow"
@@ -334,11 +292,11 @@ data "aws_iam_policy_document" "auto_discover_cluster" {
   }
 }
 
-resource "aws_elb" "drifter_server_lb" {
+resource "aws_elb" "server_lb" {
   name               = "${var.name}-server-lb"
-  availability_zones = distinct(aws_instance.drifter-server.*.availability_zone)
+  availability_zones = distinct(aws_instance.server.*.availability_zone)
   internal           = false
-  instances          = aws_instance.drifter-server.*.id
+  instances          = aws_instance.server.*.id
   listener {
     instance_port     = 4646
     instance_protocol = "http"
@@ -351,31 +309,31 @@ resource "aws_elb" "drifter_server_lb" {
     lb_port           = 8500
     lb_protocol       = "http"
   }
-  security_groups = [aws_security_group.drifter_server_lb.id]
+  security_groups = [aws_security_group.server_lb.id]
 }
 
 resource "time_sleep" "wait_2_min" {
-  depends_on = [aws_elb.drifter_server_lb]
+  depends_on = [aws_elb.server_lb]
 
   create_duration = "2m"
 }
 
 output "server_public_ips" {
-   value = aws_instance.drifter-server[*].public_ip
+   value = aws_instance.server[*].public_ip
 }
 
 output "client_public_ips" {
-   value = aws_instance.drifter-client[*].public_ip
+   value = aws_instance.client[*].public_ip
 }
 
-output "server_lb_drifter_ip" {
-  value = aws_elb.drifter_server_lb.dns_name
+output "server_lb_ip" {
+  value = aws_elb.server_lb.dns_name
 }
 
-/*
+
 resource "aws_iam_role_policy" "mount_ebs_volumes" {
   name   = "mount-ebs-volumes"
-  role   = aws_iam_role.drifter_instance_role.id
+  role   = aws_iam_role.instance_role.id
   policy = data.aws_iam_policy_document.mount_ebs_volumes.json
 }
 
@@ -395,48 +353,13 @@ data "aws_iam_policy_document" "mount_ebs_volumes" {
 }
 
 resource "aws_ebs_volume" "mysql-ebs" {
-  availability_zone = aws_instance.drifter-client[0].availability_zone
+  availability_zone = aws_instance.client[0].availability_zone
   size              = 40
 }
 
 output "aws_ebs_volume" {
   value = aws_ebs_volume.mysql-ebs.id
 }
-/*
-resource "aws_efs_file_system" "foo-efs" {
-   creation_token = "my-efs"
-   performance_mode = "generalPurpose"
-   throughput_mode = "bursting"
-   encrypted = "true"
-   tags = {
-     Name = "MyEfs"
-   }
- }
-output "aws_efs_file_system" {
-  value = aws_efs_file_system.foo-efs.id
-}
-resource "aws_efs_mount_target" "alpha" {
-   file_system_id  = "${aws_efs_file_system.foo-efs.id}"
-   subnet_id = "subnet-fc1e8cb1"
-   security_groups = ["sg-00c0b81b8efbaa1ca"]
- }
-*/
- #resource "aws_subnet" "subnet-efs" {
- #  cidr_block = "172.31.192.0/24"
- #  vpc_id = data.aws_vpc.default.id
- #  availability_zone = aws_instance.client[0].availability_zone
- #}
-
-/*
-resource "aws_subnet" "sub" {
-  cidr_block = "172.31.0.0/16"
-  vpc_id     = aws_vpc.vpc.id
-
-  tags = {
-    Name = "EFS-Mount-Demo"
-  }
-}
-*/
 
 resource "aws_security_group" "drifter" {
   vpc_id      = data.aws_vpc.default.id
@@ -489,34 +412,35 @@ resource "aws_efs_mount_target" "drifter2" {
 output "aws_efs_file_system" {
   value = aws_efs_file_system.drifter.id
 }
-/*
-resource "time_sleep" "wait_2_min" {
-  depends_on      = [aws_elb.drifter_server_lb]
-  create_duration = "5m"
-}
-*/
+
 resource "nomad_job" "efs_plugin" {
-  jobspec    = file("plugin-drifter.efs.nomad")
+  jobspec    = file("jobs/plugin-drifter.efs.nomad")
   depends_on = [time_sleep.wait_2_min]
   purge_on_destroy = true
 }
 
-/*
+
 resource "nomad_job" "ebs_plugin_ctl" {
-  jobspec    = file("plugin-ebs-controller.nomad")
-  //depends_on = [time_sleep.wait_2_min]
+  jobspec    = file("jobs/plugin-ebs-controller.nomad")
+  depends_on = [time_sleep.wait_2_min]
   purge_on_destroy = true
 }
 
 resource "nomad_job" "ebs_plugin_node" {
-  jobspec    = file("plugin-ebs-node.nomad")
-  //depends_on = [time_sleep.wait_2_min]
+  jobspec    = file("jobs/plugin-ebs-node.nomad")
+  depends_on = [time_sleep.wait_2_min]
+  purge_on_destroy = true
+}
+/*
+resource "nomad_job" "drifter-mysql" {
+  jobspec    = file("jobs/mysql-server-drifter.nomad")
+  depends_on = [nomad_volume.efs]
   purge_on_destroy = true
 }
 
-resource "nomad_job" "mysql" {
-  jobspec    = file("mysql-server-drifter.nomad")
-  depends_on = [time_sleep.wait_2_min]
+resource "nomad_job" "mysql-ebs" {
+  jobspec    = file("jobs/mysql-server.nomad")
+  depends_on = [nomad_volume.ebs]
   purge_on_destroy = true
 }
 */
@@ -526,6 +450,7 @@ data "nomad_plugin" "efs" {
   wait_for_healthy    = true
 }
 */
+
 resource "nomad_volume" "efs" {
   depends_on      = [nomad_job.efs_plugin]
   type            = "csi"
@@ -543,9 +468,9 @@ data "nomad_plugin" "ebs" {
   plugin_id        = "aws-ebs0"
   wait_for_healthy = true
 }
-
+*/
 resource "nomad_volume" "ebs" {
-  depends_on      = [data.nomad_plugin.ebs]
+  depends_on      = [nomad_job.ebs_plugin_ctl, nomad_job.ebs_plugin_node]
   type            = "csi"
   plugin_id       = "aws-ebs0"
   volume_id       = "aws-ebs0"
@@ -556,4 +481,4 @@ resource "nomad_volume" "ebs" {
   deregister_on_destroy = true
 }
 
-*/
+
