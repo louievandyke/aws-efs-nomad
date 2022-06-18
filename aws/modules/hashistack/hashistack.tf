@@ -378,7 +378,6 @@ resource "aws_security_group_rule" "drifter-ingress" {
   security_group_id = aws_security_group.drifter.id
   to_port           = 2049
   type              = "ingress"
-  self              = false
 }
 
 resource "aws_security_group_rule" "drifter-egress" {
