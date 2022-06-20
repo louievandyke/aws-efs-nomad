@@ -9,6 +9,12 @@ provider "nomad" {
   region  = "global"
 }
 
+module "my_ip_address" {
+  source = "matti/resource/shell"
+
+  command = "curl https://ipinfo.io/ip"
+}
+
 module "hashistack" {
   source = "../../modules/hashistack"
 
@@ -23,5 +29,5 @@ module "hashistack" {
   retry_join             = var.retry_join
   nomad_binary           = var.nomad_binary
   root_block_device_size = var.root_block_device_size
-  whitelist_ip           = var.whitelist_ip
+  whitelist_ip           = ["${module.my_ip_address.stdout}/32"]
 }

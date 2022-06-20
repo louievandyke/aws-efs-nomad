@@ -9,6 +9,8 @@ job "drifter-mysql-server" {
       type      = "csi"
       read_only = false
       source    = "aws-efs0"
+      access_mode = "multi-node-multi-writer"
+      attachment_mode = "file-system"
     }
 
     restart {

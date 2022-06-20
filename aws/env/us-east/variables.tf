@@ -2,9 +2,11 @@ variable "name" {
   description = "Used to name various infrastructure components"
 }
 
-variable "whitelist_ip" {
-  description = "IP to whitelist for the security groups (set 0.0.0.0/0 for world)"
-}
+#variable "whitelist_ip" {
+#  description = "IP to whitelist for the security groups (set 0.0.0.0/0 for world)"
+#  type = list(string)
+#  default = ["0.0.0.0/0"]
+#}
 
 variable "region" {
   description = "The AWS region to deploy to."

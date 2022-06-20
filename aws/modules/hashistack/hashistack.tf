@@ -29,6 +29,9 @@ variable "root_block_device_size" {
 }
 
 variable "whitelist_ip" {
+  description = "A list of IP address to grant access via the LBs."
+  type        = list(string)
+  default     = ["0.0.0.0/0"]
 }
 
 variable "retry_join" {
@@ -54,7 +57,7 @@ resource "aws_security_group" "server_lb" {
     from_port   = 4646
     to_port     = 4646
     protocol    = "tcp"
-    cidr_blocks = [var.whitelist_ip]
+    cidr_blocks = var.whitelist_ip
   }
 
   # Consul
@@ -62,7 +65,7 @@ resource "aws_security_group" "server_lb" {
     from_port   = 8500
     to_port     = 8500
     protocol    = "tcp"
-    cidr_blocks = [var.whitelist_ip]
+    cidr_blocks = var.whitelist_ip
   }
 
   egress {
@@ -81,7 +84,7 @@ resource "aws_security_group" "primary" {
     from_port   = 22
     to_port     = 22
     protocol    = "tcp"
-    cidr_blocks = [var.whitelist_ip]
+    cidr_blocks = var.whitelist_ip
   }
 
   # Nomad
@@ -89,7 +92,7 @@ resource "aws_security_group" "primary" {
     from_port       = 4646
     to_port         = 4646
     protocol        = "tcp"
-    cidr_blocks     = [var.whitelist_ip]
+    cidr_blocks     = var.whitelist_ip
     security_groups = [aws_security_group.server_lb.id]
   }
 
@@ -98,7 +101,7 @@ resource "aws_security_group" "primary" {
     from_port   = 9998
     to_port     = 9999
     protocol    = "tcp"
-    cidr_blocks = [var.whitelist_ip]
+    cidr_blocks = var.whitelist_ip
   }
 
   # Consul
@@ -106,7 +109,7 @@ resource "aws_security_group" "primary" {
     from_port       = 8500
     to_port         = 8500
     protocol        = "tcp"
-    cidr_blocks     = [var.whitelist_ip]
+    cidr_blocks     = var.whitelist_ip
     security_groups = [aws_security_group.server_lb.id]
   }
 
@@ -115,7 +118,7 @@ resource "aws_security_group" "primary" {
     from_port   = 50070
     to_port     = 50070
     protocol    = "tcp"
-    cidr_blocks = [var.whitelist_ip]
+    cidr_blocks = var.whitelist_ip
   }
 
   # HDFS DataNode UI
@@ -123,7 +126,7 @@ resource "aws_security_group" "primary" {
     from_port   = 50075
     to_port     = 50075
     protocol    = "tcp"
-    cidr_blocks = [var.whitelist_ip]
+    cidr_blocks = var.whitelist_ip
   }
 
   # Spark history server UI
@@ -131,7 +134,7 @@ resource "aws_security_group" "primary" {
     from_port   = 18080
     to_port     = 18080
     protocol    = "tcp"
-    cidr_blocks = [var.whitelist_ip]
+    cidr_blocks = var.whitelist_ip
   }
 
   # Jupyter
@@ -139,7 +142,7 @@ resource "aws_security_group" "primary" {
     from_port   = 8888
     to_port     = 8888
     protocol    = "tcp"
-    cidr_blocks = [var.whitelist_ip]
+    cidr_blocks = var.whitelist_ip
   }
 
   ingress {
@@ -352,13 +355,23 @@ data "aws_iam_policy_document" "mount_ebs_volumes" {
   }
 }
 
-resource "aws_ebs_volume" "mysql-ebs" {
+resource "aws_ebs_volume" "aws-ebs0" {
   availability_zone = aws_instance.client[0].availability_zone
   size              = 40
 }
 
-output "aws_ebs_volume" {
-  value = aws_ebs_volume.mysql-ebs.id
+output "ebs_volume" {
+    value = <<EOM
+# volume registration
+type = "csi"
+id = "ebs"
+name = "ebs"
+external_id = "${aws_ebs_volume.aws-ebs0.id}"
+capability {
+access_mode = "single-node-writer"
+}
+plugin_id = "aws-ebs0"
+EOM
 }
 
 resource "aws_security_group" "drifter" {
@@ -393,7 +406,7 @@ resource "aws_efs_file_system" "drifter" {
   creation_token = "drifter"
   encrypted      = true
   tags = {
-    Name = "LvEfs"
+    Name = "drifter-fs"
   }
 }
 
@@ -402,6 +415,7 @@ resource "aws_efs_mount_target" "drifter1" {
   subnet_id       = "subnet-fc1e8cb1"
   security_groups = [aws_security_group.drifter.id]
 }
+
 resource "aws_efs_mount_target" "drifter2" {
   file_system_id  = aws_efs_file_system.drifter.id
   subnet_id       = "subnet-6564e06b"
@@ -418,7 +432,6 @@ resource "nomad_job" "efs_plugin" {
   purge_on_destroy = true
 }
 
-
 resource "nomad_job" "ebs_plugin_ctl" {
   jobspec    = file("jobs/plugin-ebs-controller.nomad")
   depends_on = [time_sleep.wait_2_min]
@@ -430,53 +443,55 @@ resource "nomad_job" "ebs_plugin_node" {
   depends_on = [time_sleep.wait_2_min]
   purge_on_destroy = true
 }
-/*
+
 resource "nomad_job" "drifter-mysql" {
   jobspec    = file("jobs/mysql-server-drifter.nomad")
-  depends_on = [nomad_volume.efs]
+  depends_on = [nomad_volume.aws-efs0]
   purge_on_destroy = true
 }
 
 resource "nomad_job" "mysql-ebs" {
   jobspec    = file("jobs/mysql-server.nomad")
-  depends_on = [nomad_volume.ebs]
+  depends_on = [nomad_volume.aws-ebs0]
   purge_on_destroy = true
 }
-*/
-/*
+
 data "nomad_plugin" "efs" {
   plugin_id           = "aws-efs0"
   wait_for_healthy    = true
 }
-*/
 
-resource "nomad_volume" "efs" {
+resource "nomad_volume" "aws-efs0" {
   depends_on      = [nomad_job.efs_plugin]
   type            = "csi"
   plugin_id       = "aws-efs0"
   volume_id       = "aws-efs0"
   name            = "aws-efs0"
   external_id     = aws_efs_file_system.drifter.id
+  capability {
   access_mode     = "multi-node-multi-writer"
   attachment_mode = "file-system"
+  }
   deregister_on_destroy = true
 }
 
-/*
+
 data "nomad_plugin" "ebs" {
   plugin_id        = "aws-ebs0"
   wait_for_healthy = true
 }
-*/
-resource "nomad_volume" "ebs" {
+
+resource "nomad_volume" "aws-ebs0" {
   depends_on      = [nomad_job.ebs_plugin_ctl, nomad_job.ebs_plugin_node]
   type            = "csi"
   plugin_id       = "aws-ebs0"
   volume_id       = "aws-ebs0"
   name            = "aws-ebs0"
-  external_id     = aws_ebs_volume.mysql-ebs.id
-  access_mode     = "single-node-writer"
+  external_id     = aws_ebs_volume.aws-ebs0.id
+  capability {
+  access_mode = "single-node-writer"
   attachment_mode = "file-system"
+  }
   deregister_on_destroy = true
 }
 

@@ -5,12 +5,16 @@ job "mysql-server" {
   group "mysql-server" {
     count = 1
 
-    volume "ebs" {
+    volume "mysql" {
       type      = "csi"
       read_only = false
-      source    = "aws-ebs0"
-      access_mode = "single-node-writer"
-      attachment_mode = "file-system"
+      source    = "mysql"
+    }
+
+    network {
+      port "db" {
+        static = 3306
+      }
     }
 
     restart {
@@ -24,33 +28,24 @@ job "mysql-server" {
       driver = "docker"
 
       volume_mount {
-        volume      = "ebs"
+        volume      = "mysql"
         destination = "/srv"
         read_only   = false
       }
 
-      env = {
-        "MYSQL_ROOT_PASSWORD" = "password"
+      env {
+        MYSQL_ROOT_PASSWORD = "password"
       }
 
       config {
         image = "hashicorp/mysql-portworx-demo:latest"
-        args = ["--datadir", "/srv/ebs"]
-
-        port_map {
-          db = 3308
-        }
+        args  = ["--datadir", "/srv/mysql"]
+        ports = ["db"]
       }
 
       resources {
         cpu    = 500
         memory = 1024
-
-        network {
-          port "db" {
-            static = 3308
-          }
-        }
       }
 
       service {
@@ -66,3 +61,4 @@ job "mysql-server" {
     }
   }
 }
+

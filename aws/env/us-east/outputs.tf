@@ -45,7 +45,8 @@ plugin_id = "aws-efs0"
 EOM
 }
 
-output "aws_ebs_volume" {
+/*
+output "ebs_volume" {
     value = <<EOM
 # volume registration
 type = "csi"
@@ -57,3 +58,4 @@ attachment_mode = "file-system"
 plugin_id = "aws-ebs0"
 EOM
 }
+*/
