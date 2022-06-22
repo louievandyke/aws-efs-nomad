@@ -36,7 +36,7 @@ server_instance_type = "t2.medium"
 server_count         = "1"
 client_instance_type = "t2.medium"
 #client_count         = "4"
-client_count         = "1"
+client_count         = "2"
 
 
 # `whitelist_ip` (required) - IP to whitelist for the security groups (set
