@@ -13,7 +13,7 @@ key_name = "lvd-nomad"
 # `nomad_binary` (optional, null) - URL of a zip file containing a nomad
 # executable with which to replace the Nomad binaries in the AMI.
 #  - Typically this is left commented unless necessary.
-nomad_binary = "https://releases.hashicorp.com/nomad/1.3.2/nomad_1.3.2_linux_amd64.zip"
+nomad_binary = "https://releases.hashicorp.com/nomad/1.3.5/nomad_1.3.5_linux_amd64.zip"
 
 # `region` ("us-east-1") - sets the AWS region to build your cluster in.
 region = "us-east-1"
@@ -36,7 +36,7 @@ server_instance_type = "t2.medium"
 server_count         = "1"
 client_instance_type = "t2.medium"
 #client_count         = "4"
-client_count         = "2"
+client_count         = "1"
 
 
 # `whitelist_ip` (required) - IP to whitelist for the security groups (set

@@ -11,7 +11,7 @@
 #
 #     https://www.nomadproject.io/docs/job-specification/job
 #
-job "example-bar" {
+job "example" {
   # The "region" parameter specifies the region in which to execute the job.
   # If omitted, this inherits the default region name of "global".
   # region = "global"
@@ -19,7 +19,7 @@ job "example-bar" {
   # The "datacenters" parameter specifies the list of datacenters which should
   # be considered when placing this task. This must be provided.
   datacenters = ["dc1"]
-  namespace   = "bar"
+
   # The "type" parameter controls the type of job, which impacts the scheduler's
   # decision on placement. This configuration is optional and defaults to
   # "service". For a full list of job types and their differences, please see
