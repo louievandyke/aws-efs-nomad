@@ -1,6 +1,6 @@
 job "plugin-aws-ebs-controller" {
   datacenters = ["dc1"]
-
+  type = "system"
   group "controller" {
     task "plugin" {
       driver = "docker"

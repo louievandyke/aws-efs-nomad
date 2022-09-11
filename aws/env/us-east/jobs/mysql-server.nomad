@@ -8,7 +8,7 @@ job "mysql-server" {
     volume "ebs" {
       type      = "csi"
       read_only = false
-      source    = "aws-ebs0"
+      source    = "disk0"
       access_mode = "single-node-writer"
       attachment_mode = "file-system"
     }
