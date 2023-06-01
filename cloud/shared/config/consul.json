@@ -1,0 +1,33 @@
+{
+  "acl": [
+    {
+      "default_policy": "deny",
+      "enable_token_persistence": true,
+      "enabled": true
+    }
+  ],
+  "advertise_addr": "IP_ADDRESS",
+  "bind_addr": "0.0.0.0",
+  "client_addr": "0.0.0.0",
+  "data_dir": "/opt/consul/data",
+  "log_level": "INFO",
+  "retry_join": [
+    "RETRY_JOIN"
+  ],
+  "server": true,
+  "service": [
+    {
+      "name": "consul"
+    }
+  ],
+  "ui": true,
+  "ports": {
+    "grpc": 8502
+  },
+  "connect": {
+     "enabled": true
+  },
+  "encrypt": "REPLACE",
+  "encrypt_verify_incoming": true,
+  "encrypt_verify_outgoing": true
+}
