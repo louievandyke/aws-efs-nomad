@@ -1,0 +1,12 @@
+terraform {
+  cloud {
+    organization = "loutec"
+    ## Required for Terraform Enterprise; Defaults to app.terraform.io for Terraform Cloud
+    hostname = "app.terraform.io"
+
+    workspaces {
+      tags = ["aws-efs-nomad"]
+    }
+  }
+  required_version = ">= 0.12"
+}

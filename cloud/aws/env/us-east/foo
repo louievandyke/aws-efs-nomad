@@ -1,0 +1,8 @@
+module.hashistack.nomad_job.drifter-mysql
+module.hashistack.nomad_job.ebs_plugin_ctl
+module.hashistack.nomad_job.ebs_plugin_node
+module.hashistack.nomad_job.efs_plugin
+module.hashistack.nomad_job.grafana
+module.hashistack.nomad_job.mysql-server
+module.hashistack.nomad_job.prometheus
+module.hashistack.nomad_job.traefik
